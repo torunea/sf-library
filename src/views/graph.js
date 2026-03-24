@@ -107,9 +107,9 @@ function computeClusterCenters(nodes, W, H) {
 
 // ── Force-directed シミュレーション ─────
 function simulate(nodes, clusterCenters, W, H) {
-  const ITERATIONS  = 180;   // 計算回数
+  const ITERATIONS  = 220;   // 計算回数
   const NODE_R      = 22;    // ノード半径（反発計算用）
-  const MIN_DIST    = NODE_R * 2 + 20; // 最小ノード間距離
+  const MIN_DIST    = NODE_R * 2 + 60; // 最小ノード間距離
 
   // リンクインデックス（bookId → bookId）
   const linkedPairs = new Set(
@@ -147,8 +147,8 @@ function simulate(nodes, clusterCenters, W, H) {
       if (!a || !b) return;
       const dx   = b.x - a.x, dy = b.y - a.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
-      const target = MIN_DIST * 1.8; // リンク同士の理想距離
-      const force  = (dist - target) / dist * 0.12;
+      const target = MIN_DIST * 2.2; // リンク同士の理想距離
+      const force  = (dist - target) / dist * 0.08;
       a.vx += dx * force;
       a.vy += dy * force;
       b.vx -= dx * force;
@@ -161,13 +161,13 @@ function simulate(nodes, clusterCenters, W, H) {
       if (!center) return;
       const dx   = center.x - n.x, dy = center.y - n.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
-      const force = 0.08 * alpha; // 冷却とともに弱める
+      const force = 0.04 * alpha; // 冷却とともに弱める
       n.vx += dx * force;
       n.vy += dy * force;
     });
 
     // ④ 速度を適用・画面内に収める
-    const padding = 50;
+    const padding = 60;
     nodes.forEach(n => {
       n.x += n.vx * alpha;
       n.y += n.vy * alpha;
