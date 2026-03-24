@@ -288,23 +288,75 @@ nav { display: flex; gap: 0.2rem; }
 
 /* スマホ：既存のfixed表示はそのまま */
 @media (max-width: 768px) {
+  .menu-btn { display: block; }
+
+  /* サイドバー */
   .sidebar {
     position: fixed;
     top: 56px; left: 0; bottom: 0;
     z-index: 120;
     width: 80vw; max-width: 280px;
-    transform: translateX(-100%);
-
-    /* 追加：ぼやけ防止 */
-    background: var(--bg2);          /* 完全不透明に */
     -webkit-transform: translateX(-100%) translateZ(0);
     transform: translateX(-100%) translateZ(0);
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    background: var(--bg2);
   }
   .sidebar.open {
     -webkit-transform: translateX(0) translateZ(0);
     transform: translateX(0) translateZ(0);
+  }
+  .sidebar.closed {
+    width: 80vw;
+    max-width: 280px;
+  }
+
+  /* ── 詳細パネル（ここが今回の追加） ── */
+  .detail-panel {
+    width: 100vw;       /* 画面幅いっぱいに */
+    top: 56px;          /* ヘッダーの下から */
+    border-left: none;  /* 左ボーダー不要 */
+  }
+
+  /* パネル内のスクロール領域を画面高さに合わせる */
+  .panel-body {
+    /* ヘッダー56px + タブ約40px + ヘッダー部約120px + compose約110px + gasbar約44px */
+    max-height: calc(100vh - 56px - 40px - 120px - 110px - 44px);
+  }
+
+  /* composeとgasbarを画面下部に固定 */
+  .compose-area {
+    padding: 0.6rem 1rem 0.7rem;
+  }
+  .gas-bar {
+    padding: 0.4rem 1rem;
+  }
+  .gas-input {
+    font-size: 0.55rem; /* 小さな画面でURLが長いので縮小 */
+  }
+
+  /* パネルヘッダーのテキストが溢れないように */
+  .panel-title {
+    font-size: 1.1rem;
+  }
+  .panel-orig {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .panel-meta {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  /* 本カードのグリッドを1列に */
+  .books-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 一覧ビューの余白を縮小 */
+  .list-view {
+    padding: 1rem;
   }
 }
