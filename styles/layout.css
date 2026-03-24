@@ -286,6 +286,26 @@ nav { display: flex; gap: 0.2rem; }
   border-right: none;
 }
 
+/* ── グラフコントロール ── */
+.graph-controls {
+  position: absolute; top: 1rem; left: 1rem;
+  display: flex; gap: 0.3rem; z-index: 10;
+}
+.graph-ctrl-btn {
+  background: rgba(10,12,16,0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.8rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem; letter-spacing: 0.1em;
+  color: var(--text-dim); cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+.graph-ctrl-btn:hover  { color: var(--text); border-color: var(--text-dim); }
+.graph-ctrl-btn.active { color: var(--accent2); border-color: var(--accent); background: rgba(74,144,217,0.12); }
+
 /* スマホ：既存のfixed表示はそのまま */
 @media (max-width: 768px) {
   .menu-btn { display: block; }

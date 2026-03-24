@@ -1,21 +1,37 @@
 // ═══════════════════════════════════════
 //  views/graph.js — グラフビュー
-//  タブ切り替え時に初めてimportされる（遅延ロード）
+//  force-directed layout + クラスタ切り替え
 // ═══════════════════════════════════════
 
 import { state, titleById } from '../store.js';
 import { RELATION_STYLES, GENRE_MAP } from '../config.js';
 
-let _resizeTimer = null;
+let _resizeTimer  = null;
+let _clusterMode  = 'author'; // 'author' | 'genre'
+let _onNodeClick  = null;
 
 export function initGraph(onNodeClick) {
+  _onNodeClick = onNodeClick;
+
+  // リサイズ対応
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(() => drawGraph(onNodeClick), 300);
+    _resizeTimer = setTimeout(() => drawGraph(_onNodeClick), 300);
+  });
+
+  // クラスタ切り替えボタン
+  document.querySelectorAll('.graph-ctrl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.graph-ctrl-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _clusterMode = btn.dataset.cluster;
+      drawGraph(_onNodeClick);
+    });
   });
 }
 
 export function drawGraph(onNodeClick) {
+  if (onNodeClick) _onNodeClick = onNodeClick;
   const svg = document.getElementById('graphSvg');
   const W = svg.clientWidth, H = svg.clientHeight;
   if (!W || !H) return;
@@ -23,50 +39,150 @@ export function drawGraph(onNodeClick) {
   const ns = 'http://www.w3.org/2000/svg';
   svg.innerHTML = '';
 
-  // ── ジャンル帯域 ──────────────────────
-  const zones = [
-    { x: W*0.12, y: H*0.18, r: 170, color: '#2de8b0', label: 'CYBERPUNK' },
-    { x: W*0.72, y: H*0.22, r: 150, color: '#9b6ee8', label: 'SPACE OPERA' },
-    { x: W*0.55, y: H*0.72, r: 140, color: '#e87dc8', label: 'NEW WAVE' },
-    { x: W*0.25, y: H*0.70, r: 130, color: '#4adee8', label: 'AI / 意識' },
-    { x: W*0.82, y: H*0.65, r: 110, color: '#c8a96e', label: 'FIRST CONTACT' },
-  ];
-
-  const defs = document.createElementNS(ns, 'defs');
-  zones.forEach((z, i) => {
-    const rg = document.createElementNS(ns, 'radialGradient');
-    rg.setAttribute('id', `zg${i}`);
-    rg.setAttribute('cx', '50%'); rg.setAttribute('cy', '50%'); rg.setAttribute('r', '50%');
-    ['0%', '100%'].forEach((offset, j) => {
-      const s = document.createElementNS(ns, 'stop');
-      s.setAttribute('offset', offset);
-      s.setAttribute('stop-color', z.color);
-      s.setAttribute('stop-opacity', j === 0 ? '0.07' : '0');
-      rg.appendChild(s);
-    });
-    defs.appendChild(rg);
-  });
-  svg.appendChild(defs);
-
-  zones.forEach((z, i) => {
-    const c = document.createElementNS(ns, 'circle');
-    c.setAttribute('cx', z.x); c.setAttribute('cy', z.y); c.setAttribute('r', z.r);
-    c.setAttribute('fill', `url(#zg${i})`);
-    svg.appendChild(c);
+  if (!state.books.length) {
     const t = document.createElementNS(ns, 'text');
-    t.setAttribute('x', z.x);
-    t.setAttribute('y', z.y - z.r * 0.55);
+    t.setAttribute('x', W/2); t.setAttribute('y', H/2);
     t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('fill', z.color);
-    t.setAttribute('class', 'zone-label');
-    t.textContent = z.label;
+    t.setAttribute('fill', 'rgba(90,106,130,0.5)');
+    t.setAttribute('font-size', '13');
+    t.setAttribute('font-family', 'Space Mono, monospace');
+    t.textContent = 'NO DATA';
     svg.appendChild(t);
+    return;
+  }
+
+  // ── ノード初期化 ──────────────────────
+  const nodes = initNodes(state.books, W, H);
+
+  // ── クラスタ中心を計算 ────────────────
+  const clusterCenters = computeClusterCenters(nodes, W, H);
+
+  // ── force-directed シミュレーション ───
+  simulate(nodes, clusterCenters, W, H);
+
+  // ── SVG描画 ──────────────────────────
+  renderSVG(svg, ns, nodes, clusterCenters, W, H);
+}
+
+// ── ノード初期化（ランダム初期配置）──────
+function initNodes(books, W, H) {
+  return books.map(b => {
+    const angle = Math.random() * Math.PI * 2;
+    const r     = Math.random() * Math.min(W, H) * 0.3;
+    return {
+      id:       b.id,
+      label:    b.title_jp,
+      year:     b.year_jp,
+      color:    bookColor(b),
+      r:        20,
+      read:     String(b.is_read).toUpperCase() === 'TRUE',
+      author:   b.author_name,
+      genre:    (b.genre_tags || '').split(';')[0],
+      // clusterKey はモードに応じて変わる
+      get clusterKey() { return _clusterMode === 'author' ? this.author : this.genre; },
+      x:  W / 2 + Math.cos(angle) * r,
+      y:  H / 2 + Math.sin(angle) * r,
+      vx: 0,
+      vy: 0,
+    };
   });
+}
 
-  // ── ノード配置（著者・ジャンルクラスタ） ──
-  const nodes = buildClusteredNodes(state.books, W, H);
+// ── クラスタ中心座標を計算 ──────────────
+function computeClusterCenters(nodes, W, H) {
+  const keys = [...new Set(nodes.map(n => n.clusterKey))];
+  const centers = {};
 
-  // ── エッジ（重複パスを曲線でずらす） ──────
+  // クラスタ数に応じて円状に均等配置
+  keys.forEach((key, i) => {
+    const angle = (i / keys.length) * Math.PI * 2 - Math.PI / 2;
+    const rx = W * 0.3, ry = H * 0.3;
+    centers[key] = {
+      x: W / 2 + Math.cos(angle) * rx,
+      y: H / 2 + Math.sin(angle) * ry,
+    };
+  });
+  return centers;
+}
+
+// ── Force-directed シミュレーション ─────
+function simulate(nodes, clusterCenters, W, H) {
+  const ITERATIONS  = 180;   // 計算回数
+  const NODE_R      = 22;    // ノード半径（反発計算用）
+  const MIN_DIST    = NODE_R * 2 + 20; // 最小ノード間距離
+
+  // リンクインデックス（bookId → bookId）
+  const linkedPairs = new Set(
+    state.links.map(l => `${l.from_book_id}__${l.to_book_id}`)
+  );
+  function isLinked(a, b) {
+    return linkedPairs.has(`${a.id}__${b.id}`) || linkedPairs.has(`${b.id}__${a.id}`);
+  }
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    const alpha = 1 - iter / ITERATIONS; // 冷却係数
+
+    nodes.forEach(n => { n.vx = 0; n.vy = 0; });
+
+    // ① ノード間反発力
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        if (dist < MIN_DIST) {
+          const force = (MIN_DIST - dist) / dist * 0.5;
+          a.vx -= dx * force;
+          a.vy -= dy * force;
+          b.vx += dx * force;
+          b.vy += dy * force;
+        }
+      }
+    }
+
+    // ② リンク引力（繋がったノードを引き寄せる）
+    state.links.forEach(l => {
+      const a = nodes.find(n => n.id === l.from_book_id);
+      const b = nodes.find(n => n.id === l.to_book_id);
+      if (!a || !b) return;
+      const dx   = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      const target = MIN_DIST * 1.8; // リンク同士の理想距離
+      const force  = (dist - target) / dist * 0.12;
+      a.vx += dx * force;
+      a.vy += dy * force;
+      b.vx -= dx * force;
+      b.vy -= dy * force;
+    });
+
+    // ③ クラスタ引力（同クラスタのノードを中心に引き寄せる）
+    nodes.forEach(n => {
+      const center = clusterCenters[n.clusterKey];
+      if (!center) return;
+      const dx   = center.x - n.x, dy = center.y - n.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      const force = 0.08 * alpha; // 冷却とともに弱める
+      n.vx += dx * force;
+      n.vy += dy * force;
+    });
+
+    // ④ 速度を適用・画面内に収める
+    const padding = 50;
+    nodes.forEach(n => {
+      n.x += n.vx * alpha;
+      n.y += n.vy * alpha;
+      n.x = Math.max(padding, Math.min(W - padding, n.x));
+      n.y = Math.max(padding, Math.min(H - padding, n.y));
+    });
+  }
+}
+
+// ── SVG描画 ──────────────────────────────
+function renderSVG(svg, ns, nodes, clusterCenters, W, H) {
+  // クラスタラベル（重心に薄く表示）
+  renderClusterLabels(svg, ns, nodes, clusterCenters);
+
+  // エッジ（重複パスを曲線でずらす）
   const edgePairCount = {};
   state.links.forEach(l => {
     const key = [l.from_book_id, l.to_book_id].sort().join('__');
@@ -79,143 +195,121 @@ export function drawGraph(onNodeClick) {
     if (!a || !b) return;
     const key = [l.from_book_id, l.to_book_id].sort().join('__');
     edgePairIndex[key] = (edgePairIndex[key] || 0) + 1;
-    const total = edgePairCount[key];
-    const idx   = edgePairIndex[key];
-    // 複数エッジがある場合のみ曲率をつける
-    const curvature = total > 1 ? (idx % 2 === 1 ? 1 : -1) * Math.ceil(idx / 2) * 30 : 0;
-    const style = RELATION_STYLES[l.relation] || RELATION_STYLES['引用・参照'];
-    drawEdge(svg, ns, a, b, l, style, onNodeClick, curvature);
+    const total      = edgePairCount[key];
+    const idx        = edgePairIndex[key];
+    const curvature  = total > 1 ? (idx % 2 === 1 ? 1 : -1) * Math.ceil(idx / 2) * 30 : 0;
+    const style      = RELATION_STYLES[l.relation] || RELATION_STYLES['引用・参照'];
+    drawEdge(svg, ns, a, b, l, style, curvature);
   });
 
-  // ── ノード ──────────────────────────────
+  // ノード
+  nodes.forEach(n => drawNode(svg, ns, n));
+}
+
+// ── クラスタラベル ────────────────────────
+function renderClusterLabels(svg, ns, nodes, clusterCenters) {
+  // クラスタごとのノード重心を計算
+  const clusterNodes = {};
   nodes.forEach(n => {
-    const g = document.createElementNS(ns, 'g');
-    g.setAttribute('cursor', 'pointer');
-    g.setAttribute('transform', `translate(${n.x},${n.y})`);
-    g.addEventListener('click', () => onNodeClick(n.id));
+    if (!clusterNodes[n.clusterKey]) clusterNodes[n.clusterKey] = [];
+    clusterNodes[n.clusterKey].push(n);
+  });
 
-    // 読了グロー
-    if (n.read) {
-      const glow = document.createElementNS(ns, 'circle');
-      glow.setAttribute('r', n.r + 6);
-      glow.setAttribute('fill', 'none');
-      glow.setAttribute('stroke', n.color);
-      glow.setAttribute('stroke-width', '1');
-      glow.setAttribute('opacity', '0.2');
-      g.appendChild(glow);
-    }
+  Object.entries(clusterNodes).forEach(([key, members]) => {
+    const cx = members.reduce((s, n) => s + n.x, 0) / members.length;
+    const cy = members.reduce((s, n) => s + n.y, 0) / members.length;
 
-    // 短編集・通常作品ともに丸で統一
-    const c = document.createElementNS(ns, 'circle');
-    c.setAttribute('r', n.r);
-    c.setAttribute('fill', n.read ? 'rgba(10,12,16,0.9)' : 'rgba(10,12,16,0.6)');
-    c.setAttribute('stroke', n.color);
-    c.setAttribute('stroke-width', n.read ? '2' : '1');
-    g.appendChild(c);
+    // ラベルをノード群の重心の少し上に配置
+    const label = _clusterMode === 'genre'
+      ? (GENRE_MAP[key] ? key : key)
+      : key;
 
-    // 出版年ラベル
-    const yt = document.createElementNS(ns, 'text');
-    yt.setAttribute('y', -n.r - 8);
-    yt.setAttribute('text-anchor', 'middle');
-    yt.setAttribute('fill', 'rgba(90,106,130,0.8)');
-    yt.setAttribute('font-size', '9');
-    yt.setAttribute('font-family', 'Space Mono, monospace');
-    yt.textContent = n.year;
-    g.appendChild(yt);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', cx);
+    t.setAttribute('y', cy - 36); // ノードより上
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '11');
+    t.setAttribute('letter-spacing', '0.15em');
+    t.setAttribute('font-family', 'Space Mono, monospace');
+    t.setAttribute('text-transform', 'uppercase');
+    t.setAttribute('pointer-events', 'none');
 
-    // タイトルラベル
-    const lt = document.createElementNS(ns, 'text');
-    lt.setAttribute('y', n.r + 16);
-    lt.setAttribute('text-anchor', 'middle');
-    lt.setAttribute('fill', n.color);
-    lt.setAttribute('font-size', '10');
-    lt.setAttribute('font-family', 'Shippori Mincho, serif');
-    lt.setAttribute('opacity', '0.85');
-    lt.textContent = n.label;
-    g.appendChild(lt);
-
-    svg.appendChild(g);
+    // ジャンルモードはジャンル色、著者モードは著者色
+    const color = _clusterMode === 'genre'
+      ? (GENRE_MAP[key]?.color || 'rgba(200,212,232,0.25)')
+      : authorColor(key);
+    t.setAttribute('fill', color);
+    t.setAttribute('opacity', '0.28');
+    t.textContent = label.toUpperCase();
+    svg.appendChild(t);
   });
 }
 
-// ── 著者・ジャンルクラスタ配置 ────────────
-function buildClusteredNodes(books, W, H) {
-  // 著者をジャンルの主タグでソートして隣接配置
-  const authors = [...new Set(books.map(b => b.author_name))];
-  authors.sort((a, b) => {
-    const genreA = (books.find(bk => bk.author_name === a)?.genre_tags || '').split(';')[0];
-    const genreB = (books.find(bk => bk.author_name === b)?.genre_tags || '').split(';')[0];
-    return genreA.localeCompare(genreB, 'ja');
-  });
+// ── ノード描画 ────────────────────────────
+function drawNode(svg, ns, n) {
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('cursor', 'pointer');
+  g.setAttribute('transform', `translate(${n.x},${n.y})`);
+  g.addEventListener('click', () => _onNodeClick?.(n.id));
 
-  // 著者グループの中心を円状に配置
-  const authorCenters = {};
-  authors.forEach((author, i) => {
-    const angle = (i / authors.length) * Math.PI * 2 - Math.PI / 2;
-    authorCenters[author] = {
-      x: W * 0.5 + Math.cos(angle) * W * 0.28,
-      y: H * 0.5 + Math.sin(angle) * H * 0.28,
-    };
-  });
+  if (n.read) {
+    const glow = document.createElementNS(ns, 'circle');
+    glow.setAttribute('r', n.r + 6);
+    glow.setAttribute('fill', 'none');
+    glow.setAttribute('stroke', n.color);
+    glow.setAttribute('stroke-width', '1');
+    glow.setAttribute('opacity', '0.2');
+    g.appendChild(glow);
+  }
 
-  // 著者ごとの本リスト
-  const authorBooks = {};
-  books.forEach(b => {
-    if (!authorBooks[b.author_name]) authorBooks[b.author_name] = [];
-    authorBooks[b.author_name].push(b);
-  });
+  const c = document.createElementNS(ns, 'circle');
+  c.setAttribute('r', n.r);
+  c.setAttribute('fill', n.read ? 'rgba(10,12,16,0.9)' : 'rgba(10,12,16,0.6)');
+  c.setAttribute('stroke', n.color);
+  c.setAttribute('stroke-width', n.read ? '2' : '1');
+  g.appendChild(c);
 
-  return books.map(b => {
-    const center   = authorCenters[b.author_name];
-    const siblings = authorBooks[b.author_name];
-    const sibIdx   = siblings.indexOf(b);
-    const sibCount = siblings.length;
+  const yt = document.createElementNS(ns, 'text');
+  yt.setAttribute('y', -n.r - 8);
+  yt.setAttribute('text-anchor', 'middle');
+  yt.setAttribute('fill', 'rgba(90,106,130,0.8)');
+  yt.setAttribute('font-size', '9');
+  yt.setAttribute('font-family', 'Space Mono, monospace');
+  yt.setAttribute('pointer-events', 'none');
+  yt.textContent = n.year;
+  g.appendChild(yt);
 
-    // 著者内で放射状に散らす（1冊ならそのまま中心）
-    let offsetX = 0, offsetY = 0;
-    if (sibCount > 1) {
-      const angle  = (sibIdx / sibCount) * Math.PI * 2;
-      const spread = Math.min(65, sibCount * 20);
-      offsetX = Math.cos(angle) * spread;
-      offsetY = Math.sin(angle) * spread;
-    }
+  const lt = document.createElementNS(ns, 'text');
+  lt.setAttribute('y', n.r + 16);
+  lt.setAttribute('text-anchor', 'middle');
+  lt.setAttribute('fill', n.color);
+  lt.setAttribute('font-size', '10');
+  lt.setAttribute('font-family', 'Shippori Mincho, serif');
+  lt.setAttribute('opacity', '0.85');
+  lt.setAttribute('pointer-events', 'none');
+  lt.textContent = n.label;
+  g.appendChild(lt);
 
-    return {
-      id:        b.id,
-      label:     b.title_jp,
-      year:      b.year_jp,
-      color:     bookColor(b),
-      r:         20,
-      read:      String(b.is_read).toUpperCase() === 'TRUE',
-      anthology: String(b.is_anthology).toUpperCase() === 'TRUE',
-      x:         center.x + offsetX,
-      y:         center.y + offsetY,
-    };
-  });
+  svg.appendChild(g);
 }
 
-// ── エッジ描画（曲線対応） ─────────────────
-function drawEdge(svg, ns, a, b, linkData, style, onNodeClick, curvature = 0) {
+// ── エッジ描画（二次ベジェ曲線） ──────────
+function drawEdge(svg, ns, a, b, linkData, style, curvature = 0) {
   const dx  = b.x - a.x, dy = b.y - a.y;
   const len = Math.sqrt(dx * dx + dy * dy);
   if (len === 0) return;
 
-  // 二次ベジェの制御点
-  const cx = (a.x + b.x) / 2 - (dy / len) * curvature;
-  const cy = (a.y + b.y) / 2 + (dx / len) * curvature;
-
-  // 矢印の終点をノード縁に合わせる
-  const tx = b.x - dx / len * (b.r || 20);
-  const ty = b.y - dy / len * (b.r || 20);
-
-  const eg = document.createElementNS(ns, 'g');
-  eg.setAttribute('cursor', 'pointer');
-
+  const cx  = (a.x + b.x) / 2 - (dy / len) * curvature;
+  const cy  = (a.y + b.y) / 2 + (dx / len) * curvature;
+  const tx  = b.x - dx / len * (b.r || 20);
+  const ty  = b.y - dy / len * (b.r || 20);
   const endX = style.arrow ? tx : b.x;
   const endY = style.arrow ? ty : b.y;
   const d    = `M ${a.x} ${a.y} Q ${cx} ${cy} ${endX} ${endY}`;
 
-  // 可視パス
+  const eg = document.createElementNS(ns, 'g');
+  eg.setAttribute('cursor', 'pointer');
+
   const path = document.createElementNS(ns, 'path');
   path.setAttribute('d', d);
   path.setAttribute('fill', 'none');
@@ -224,11 +318,10 @@ function drawEdge(svg, ns, a, b, linkData, style, onNodeClick, curvature = 0) {
   if (style.dash) path.setAttribute('stroke-dasharray', '5,4');
   eg.appendChild(path);
 
-  // 矢印ヘッド（制御点→終点方向に向ける）
   let tri;
   if (style.arrow) {
     const adx  = endX - cx, ady = endY - cy;
-    const alen = Math.sqrt(adx * adx + ady * ady);
+    const alen = Math.sqrt(adx * adx + ady * ady) || 0.01;
     const mx2  = (cx + endX) / 2, my2 = (cy + endY) / 2;
     const ax2  = mx2 + adx / alen * 8, ay2 = my2 + ady / alen * 8;
     const perp = [-ady / alen * 5, adx / alen * 5];
@@ -239,7 +332,6 @@ function drawEdge(svg, ns, a, b, linkData, style, onNodeClick, curvature = 0) {
     eg.appendChild(tri);
   }
 
-  // 透明ヒットエリア（同じ曲線形状）
   const hit = document.createElementNS(ns, 'path');
   hit.setAttribute('d', d);
   hit.setAttribute('fill', 'none');
@@ -259,14 +351,14 @@ function drawEdge(svg, ns, a, b, linkData, style, onNodeClick, curvature = 0) {
   });
   eg.addEventListener('click', ev => {
     ev.stopPropagation();
-    showEdgePopup(ev, linkData, a, b, onNodeClick);
+    showEdgePopup(ev, linkData, a, b);
   });
 
   svg.appendChild(eg);
 }
 
 // ── エッジポップアップ ────────────────────
-function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
+function showEdgePopup(ev, link, nodeA, nodeB) {
   document.getElementById('edgePopup')?.remove();
   const popup = document.createElement('div');
   popup.id        = 'edgePopup';
@@ -285,17 +377,13 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
       <div class="link-popup-note">${link.note || ''}</div>
     </div>`;
 
-  // 先にDOMへ追加して実サイズを取得（画面外防止）
   popup.style.visibility = 'hidden';
   document.body.appendChild(popup);
 
   const margin = 12;
   const pw = popup.offsetWidth;
   const ph = popup.offsetHeight;
-
-  let x = ev.clientX + margin;
-  let y = ev.clientY + margin;
-
+  let x = ev.clientX + margin, y = ev.clientY + margin;
   if (x + pw > window.innerWidth  - margin) x = ev.clientX - pw - margin;
   if (x < margin) x = margin;
   if (y + ph > window.innerHeight - margin) y = ev.clientY - ph - margin;
@@ -308,7 +396,7 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
   popup.querySelectorAll('.link-popup-book').forEach(el => {
     el.addEventListener('click', () => {
       popup.remove();
-      onNodeClick(el.dataset.id);
+      _onNodeClick?.(el.dataset.id);
     });
   });
 }
@@ -317,4 +405,13 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
 function bookColor(b) {
   const genre = (b.genre_tags || '').split(';')[0];
   return GENRE_MAP[genre]?.color || 'hsl(210,50%,60%)';
+}
+
+const _authorColorCache = {};
+function authorColor(name) {
+  if (!_authorColorCache[name]) {
+    const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+    _authorColorCache[name] = `hsl(${hue},45%,55%)`;
+  }
+  return _authorColorCache[name];
 }

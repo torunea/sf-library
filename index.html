@@ -57,7 +57,11 @@
 
     <!-- グラフビュー -->
     <div class="graph-view" id="graphView" style="display:none">
-      <svg class="graph-canvas" id="graphSvg"></svg>
+    <div class="graph-controls">
+        <button class="graph-ctrl-btn active" data-cluster="author">著者</button>
+        <button class="graph-ctrl-btn" data-cluster="genre">ジャンル</button>
+    </div>
+    <svg class="graph-canvas" id="graphSvg"></svg>
     </div>
   </main>
 </div>
