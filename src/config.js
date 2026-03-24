@@ -3,7 +3,7 @@
 //  GAS_URL をデプロイURLに書き換えてください
 // ═══════════════════════════════════════
 
-export const GAS_URL = 'YOUR_GAS_DEPLOY_URL'; // ← ここにデプロイURLを貼り付け
+export const GAS_URL = 'https://script.google.com/macros/s/AKfycbwTIM8IavZN2nqRoSENa-DmRF0-GltSrnz0Yucm-uWjDt1fJLYFmHa9FhYDjNo9hEEn/exec'; // ← ここにデプロイURLを貼り付け
 
 export const CACHE_TTL = 60 * 60 * 1000; // 1時間（ミリ秒）
 
