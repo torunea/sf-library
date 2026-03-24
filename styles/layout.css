@@ -255,3 +255,32 @@ nav { display: flex; gap: 0.2rem; }
   font-family: 'Space Mono', monospace;
   font-size: 0.55rem; white-space: nowrap; transition: color 0.3s;
 }
+
+/* ── ハンバーガーボタン ── */
+.menu-btn {
+  display: none;
+  background: none; border: 1px solid var(--border);
+  color: var(--text-mid); cursor: pointer;
+  font-size: 1rem; padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  margin-right: 0.4rem;
+  transition: all 0.15s;
+}
+.menu-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ── スマホ対応 ── */
+@media (max-width: 768px) {
+  .menu-btn { display: block; }
+
+  .sidebar {
+    position: fixed;
+    top: 56px; left: 0; bottom: 0;
+    z-index: 120;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+    width: 80vw; max-width: 280px;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .detail-panel { width: 100vw; }
+}

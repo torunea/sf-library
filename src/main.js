@@ -75,9 +75,25 @@ function bindEvents() {
     btn.addEventListener('click', () => showView(btn.dataset.view));
   });
 
+    // サイドバー開閉
+    const menuBtn  = document.getElementById('menuBtn');
+    const sidebar  = document.getElementById('sidebar');
+    const overlay  = document.getElementById('overlay');
+
+    menuBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    });
+
+    // オーバーレイタップで閉じる（詳細パネルと共用）
+    overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    // 既存のcloseDetail()も呼ぶ
+    closeDetail();
+    });
+
   // パネルを閉じる
   document.getElementById('panelClose').addEventListener('click',   closeDetail);
-  document.getElementById('overlay').addEventListener('click',      closeDetail);
 
   // パネルタブ
   document.querySelectorAll('.panel-tab').forEach(btn => {
