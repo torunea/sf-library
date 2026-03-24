@@ -209,12 +209,25 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
       <div class="link-popup-note">${link.note || ''}</div>
     </div>`;
 
+  // 先にDOMに追加して実サイズを取得
+  popup.style.visibility = 'hidden';
   document.body.appendChild(popup);
-  const pw = 320, ph = 140;
-  let x = ev.clientX + 12, y = ev.clientY - 20;
-  if (x + pw > window.innerWidth  - 16) x = ev.clientX - pw - 12;
-  if (y + ph > window.innerHeight - 16) y = ev.clientY - ph - 12;
-  popup.style.left = x + 'px'; popup.style.top = y + 'px';
+
+  const margin = 12;
+  const pw = popup.offsetWidth;
+  const ph = popup.offsetHeight;
+
+  let x = ev.clientX + margin;
+  let y = ev.clientY + margin;
+
+  if (x + pw > window.innerWidth  - margin) x = ev.clientX - pw - margin;
+  if (x < margin) x = margin;
+  if (y + ph > window.innerHeight - margin) y = ev.clientY - ph - margin;
+  if (y < margin) y = margin;
+
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+  popup.style.visibility = '';
 
   popup.querySelectorAll('.link-popup-book').forEach(el => {
     el.addEventListener('click', () => {

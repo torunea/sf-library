@@ -257,8 +257,8 @@ nav { display: flex; gap: 0.2rem; }
 }
 
 /* ── ハンバーガーボタン ── */
+/* 変更後 */
 .menu-btn {
-  display: none;
   background: none; border: 1px solid var(--border);
   color: var(--text-mid); cursor: pointer;
   font-size: 1rem; padding: 0.3rem 0.6rem;
@@ -268,19 +268,43 @@ nav { display: flex; gap: 0.2rem; }
 }
 .menu-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
-/* ── スマホ対応 ── */
-@media (max-width: 768px) {
-  .menu-btn { display: block; }
+/* サイドバーにtransitionを追加（PC・スマホ共通） */
+.sidebar {
+  width: 260px; flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 1.2rem 0;
+  transition: width 0.3s cubic-bezier(0.16,1,0.3,1),
+              transform 0.3s cubic-bezier(0.16,1,0.3,1);
+}
 
+/* PC：幅をゼロにして隠す */
+.sidebar.closed {
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+/* スマホ：既存のfixed表示はそのまま */
+@media (max-width: 768px) {
   .sidebar {
     position: fixed;
     top: 56px; left: 0; bottom: 0;
     z-index: 120;
-    transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
     width: 80vw; max-width: 280px;
-  }
-  .sidebar.open { transform: translateX(0); }
+    transform: translateX(-100%);
 
-  .detail-panel { width: 100vw; }
+    /* 追加：ぼやけ防止 */
+    background: var(--bg2);          /* 完全不透明に */
+    -webkit-transform: translateX(-100%) translateZ(0);
+    transform: translateX(-100%) translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .sidebar.open {
+    -webkit-transform: translateX(0) translateZ(0);
+    transform: translateX(0) translateZ(0);
+  }
 }

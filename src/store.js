@@ -27,7 +27,7 @@ export function getStoriesForBook(bookId) {
 
 /** 本に紐づくメモを取得（話IDなし＝本全体のメモ） */
 export function getMemosForBook(bookId) {
-  return state.memos.filter(m => m.book_id === bookId && !m.story_id);
+  return state.memos.filter(m => m.book_id === bookId && (!m.story_id || m.story_id === ''));
 }
 
 /** 話に紐づくメモを取得 */
@@ -37,7 +37,7 @@ export function getMemosForStory(storyId) {
 
 /** 本から出るリンク */
 export function getLinksFrom(bookId) {
-  return state.links.filter(l => l.from_book_id === bookId && !l.from_story_id);
+  return state.links.filter(l => l.from_book_id === bookId && (!l.from_story_id || l.from_story_id === ''));
 }
 
 /** 話から出るリンク */
