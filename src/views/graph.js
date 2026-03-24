@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════
 //  views/graph.js — グラフビュー
-//  このファイルはタブ切り替え時に初めてimportされる
+//  タブ切り替え時に初めてimportされる（遅延ロード）
 // ═══════════════════════════════════════
 
 import { state, titleById } from '../store.js';
@@ -48,44 +48,43 @@ export function drawGraph(onNodeClick) {
   });
   svg.appendChild(defs);
 
-    zones.forEach((z, i) => {
+  zones.forEach((z, i) => {
     const c = document.createElementNS(ns, 'circle');
     c.setAttribute('cx', z.x); c.setAttribute('cy', z.y); c.setAttribute('r', z.r);
     c.setAttribute('fill', `url(#zg${i})`);
     svg.appendChild(c);
     const t = document.createElementNS(ns, 'text');
     t.setAttribute('x', z.x);
-    t.setAttribute('y', z.y - z.r * 0.55);  // 上端より内側に下げる
-    t.setAttribute('text-anchor', 'middle'); // 中央揃えに変更
+    t.setAttribute('y', z.y - z.r * 0.55);
+    t.setAttribute('text-anchor', 'middle');
     t.setAttribute('fill', z.color);
     t.setAttribute('class', 'zone-label');
     t.textContent = z.label;
     svg.appendChild(t);
-    });
-  // ── ノード配置（スプレッドシートデータから） ──
-  const nodes = state.books.map((b, i) => {
-    const angle = (i / state.books.length) * Math.PI * 2;
-    const rx = W * 0.32, ry = H * 0.32;
-    return {
-      id:    b.id,
-      label: b.title_jp,
-      year:  b.year_jp,
-      color: bookColor(b),
-      r:     20,
-      read:  String(b.is_read).toUpperCase() === 'TRUE',
-      anthology: String(b.is_anthology).toUpperCase() === 'TRUE',
-      x: W * 0.5 + Math.cos(angle) * rx,
-      y: H * 0.5 + Math.sin(angle) * ry,
-    };
   });
 
-  // ── エッジ ──────────────────────────────
+  // ── ノード配置（著者・ジャンルクラスタ） ──
+  const nodes = buildClusteredNodes(state.books, W, H);
+
+  // ── エッジ（重複パスを曲線でずらす） ──────
+  const edgePairCount = {};
+  state.links.forEach(l => {
+    const key = [l.from_book_id, l.to_book_id].sort().join('__');
+    edgePairCount[key] = (edgePairCount[key] || 0) + 1;
+  });
+  const edgePairIndex = {};
   state.links.forEach(l => {
     const a = nodes.find(n => n.id === l.from_book_id);
     const b = nodes.find(n => n.id === l.to_book_id);
     if (!a || !b) return;
+    const key = [l.from_book_id, l.to_book_id].sort().join('__');
+    edgePairIndex[key] = (edgePairIndex[key] || 0) + 1;
+    const total = edgePairCount[key];
+    const idx   = edgePairIndex[key];
+    // 複数エッジがある場合のみ曲率をつける
+    const curvature = total > 1 ? (idx % 2 === 1 ? 1 : -1) * Math.ceil(idx / 2) * 30 : 0;
     const style = RELATION_STYLES[l.relation] || RELATION_STYLES['引用・参照'];
-    drawEdge(svg, ns, a, b, l, style, onNodeClick);
+    drawEdge(svg, ns, a, b, l, style, onNodeClick, curvature);
   });
 
   // ── ノード ──────────────────────────────
@@ -95,43 +94,41 @@ export function drawGraph(onNodeClick) {
     g.setAttribute('transform', `translate(${n.x},${n.y})`);
     g.addEventListener('click', () => onNodeClick(n.id));
 
+    // 読了グロー
     if (n.read) {
       const glow = document.createElementNS(ns, 'circle');
-      glow.setAttribute('r', n.r + 6); glow.setAttribute('fill', 'none');
-      glow.setAttribute('stroke', n.color); glow.setAttribute('stroke-width', '1');
+      glow.setAttribute('r', n.r + 6);
+      glow.setAttribute('fill', 'none');
+      glow.setAttribute('stroke', n.color);
+      glow.setAttribute('stroke-width', '1');
       glow.setAttribute('opacity', '0.2');
       g.appendChild(glow);
     }
 
-    if (n.anthology) {
-      const s = n.r * 1.4;
-      const rect = document.createElementNS(ns, 'rect');
-      rect.setAttribute('x', -s/2); rect.setAttribute('y', -s/2);
-      rect.setAttribute('width', s); rect.setAttribute('height', s);
-      rect.setAttribute('fill', n.read ? 'rgba(10,12,16,0.9)' : 'rgba(10,12,16,0.6)');
-      rect.setAttribute('stroke', n.color);
-      rect.setAttribute('stroke-width', n.read ? '2' : '1');
-      rect.setAttribute('rx', '3');
-      g.appendChild(rect);
-    } else {
-      const c = document.createElementNS(ns, 'circle');
-      c.setAttribute('r', n.r);
-      c.setAttribute('fill', n.read ? 'rgba(10,12,16,0.9)' : 'rgba(10,12,16,0.6)');
-      c.setAttribute('stroke', n.color);
-      c.setAttribute('stroke-width', n.read ? '2' : '1');
-      g.appendChild(c);
-    }
+    // 短編集・通常作品ともに丸で統一
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('r', n.r);
+    c.setAttribute('fill', n.read ? 'rgba(10,12,16,0.9)' : 'rgba(10,12,16,0.6)');
+    c.setAttribute('stroke', n.color);
+    c.setAttribute('stroke-width', n.read ? '2' : '1');
+    g.appendChild(c);
 
+    // 出版年ラベル
     const yt = document.createElementNS(ns, 'text');
-    yt.setAttribute('y', -n.r - 8); yt.setAttribute('text-anchor', 'middle');
-    yt.setAttribute('fill', 'rgba(90,106,130,0.8)'); yt.setAttribute('font-size', '9');
+    yt.setAttribute('y', -n.r - 8);
+    yt.setAttribute('text-anchor', 'middle');
+    yt.setAttribute('fill', 'rgba(90,106,130,0.8)');
+    yt.setAttribute('font-size', '9');
     yt.setAttribute('font-family', 'Space Mono, monospace');
     yt.textContent = n.year;
     g.appendChild(yt);
 
+    // タイトルラベル
     const lt = document.createElementNS(ns, 'text');
-    lt.setAttribute('y', n.r + 16); lt.setAttribute('text-anchor', 'middle');
-    lt.setAttribute('fill', n.color); lt.setAttribute('font-size', '10');
+    lt.setAttribute('y', n.r + 16);
+    lt.setAttribute('text-anchor', 'middle');
+    lt.setAttribute('fill', n.color);
+    lt.setAttribute('font-size', '10');
     lt.setAttribute('font-family', 'Shippori Mincho, serif');
     lt.setAttribute('opacity', '0.85');
     lt.textContent = n.label;
@@ -141,47 +138,123 @@ export function drawGraph(onNodeClick) {
   });
 }
 
-function drawEdge(svg, ns, a, b, linkData, style, onNodeClick) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const len = Math.sqrt(dx*dx + dy*dy);
-  const mx  = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-  const tx  = b.x - dx / len * (b.r || 20);
-  const ty  = b.y - dy / len * (b.r || 20);
+// ── 著者・ジャンルクラスタ配置 ────────────
+function buildClusteredNodes(books, W, H) {
+  // 著者をジャンルの主タグでソートして隣接配置
+  const authors = [...new Set(books.map(b => b.author_name))];
+  authors.sort((a, b) => {
+    const genreA = (books.find(bk => bk.author_name === a)?.genre_tags || '').split(';')[0];
+    const genreB = (books.find(bk => bk.author_name === b)?.genre_tags || '').split(';')[0];
+    return genreA.localeCompare(genreB, 'ja');
+  });
+
+  // 著者グループの中心を円状に配置
+  const authorCenters = {};
+  authors.forEach((author, i) => {
+    const angle = (i / authors.length) * Math.PI * 2 - Math.PI / 2;
+    authorCenters[author] = {
+      x: W * 0.5 + Math.cos(angle) * W * 0.28,
+      y: H * 0.5 + Math.sin(angle) * H * 0.28,
+    };
+  });
+
+  // 著者ごとの本リスト
+  const authorBooks = {};
+  books.forEach(b => {
+    if (!authorBooks[b.author_name]) authorBooks[b.author_name] = [];
+    authorBooks[b.author_name].push(b);
+  });
+
+  return books.map(b => {
+    const center   = authorCenters[b.author_name];
+    const siblings = authorBooks[b.author_name];
+    const sibIdx   = siblings.indexOf(b);
+    const sibCount = siblings.length;
+
+    // 著者内で放射状に散らす（1冊ならそのまま中心）
+    let offsetX = 0, offsetY = 0;
+    if (sibCount > 1) {
+      const angle  = (sibIdx / sibCount) * Math.PI * 2;
+      const spread = Math.min(65, sibCount * 20);
+      offsetX = Math.cos(angle) * spread;
+      offsetY = Math.sin(angle) * spread;
+    }
+
+    return {
+      id:        b.id,
+      label:     b.title_jp,
+      year:      b.year_jp,
+      color:     bookColor(b),
+      r:         20,
+      read:      String(b.is_read).toUpperCase() === 'TRUE',
+      anthology: String(b.is_anthology).toUpperCase() === 'TRUE',
+      x:         center.x + offsetX,
+      y:         center.y + offsetY,
+    };
+  });
+}
+
+// ── エッジ描画（曲線対応） ─────────────────
+function drawEdge(svg, ns, a, b, linkData, style, onNodeClick, curvature = 0) {
+  const dx  = b.x - a.x, dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len === 0) return;
+
+  // 二次ベジェの制御点
+  const cx = (a.x + b.x) / 2 - (dy / len) * curvature;
+  const cy = (a.y + b.y) / 2 + (dx / len) * curvature;
+
+  // 矢印の終点をノード縁に合わせる
+  const tx = b.x - dx / len * (b.r || 20);
+  const ty = b.y - dy / len * (b.r || 20);
 
   const eg = document.createElementNS(ns, 'g');
   eg.setAttribute('cursor', 'pointer');
 
-  const line = document.createElementNS(ns, 'line');
-  line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
-  line.setAttribute('x2', style.arrow ? tx : b.x);
-  line.setAttribute('y2', style.arrow ? ty : b.y);
-  line.setAttribute('stroke', style.color); line.setAttribute('stroke-width', '1.5');
-  if (style.dash) line.setAttribute('stroke-dasharray', '5,4');
-  eg.appendChild(line);
+  const endX = style.arrow ? tx : b.x;
+  const endY = style.arrow ? ty : b.y;
+  const d    = `M ${a.x} ${a.y} Q ${cx} ${cy} ${endX} ${endY}`;
 
+  // 可視パス
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', style.color);
+  path.setAttribute('stroke-width', '1.5');
+  if (style.dash) path.setAttribute('stroke-dasharray', '5,4');
+  eg.appendChild(path);
+
+  // 矢印ヘッド（制御点→終点方向に向ける）
   let tri;
   if (style.arrow) {
-    const ax2 = mx + dx/len*8, ay2 = my + dy/len*8;
-    const perp = [-dy/len*5, dx/len*5];
+    const adx  = endX - cx, ady = endY - cy;
+    const alen = Math.sqrt(adx * adx + ady * ady);
+    const mx2  = (cx + endX) / 2, my2 = (cy + endY) / 2;
+    const ax2  = mx2 + adx / alen * 8, ay2 = my2 + ady / alen * 8;
+    const perp = [-ady / alen * 5, adx / alen * 5];
     tri = document.createElementNS(ns, 'polygon');
-    tri.setAttribute('points', `${ax2},${ay2} ${ax2-dx/len*12+perp[0]},${ay2-dy/len*12+perp[1]} ${ax2-dx/len*12-perp[0]},${ay2-dy/len*12-perp[1]}`);
+    tri.setAttribute('points',
+      `${ax2},${ay2} ${ax2 - adx/alen*12 + perp[0]},${ay2 - ady/alen*12 + perp[1]} ${ax2 - adx/alen*12 - perp[0]},${ay2 - ady/alen*12 - perp[1]}`);
     tri.setAttribute('fill', style.color);
     eg.appendChild(tri);
   }
 
-  // 透明ヒットエリア
-  const hit = document.createElementNS(ns, 'line');
-  hit.setAttribute('x1', a.x); hit.setAttribute('y1', a.y);
-  hit.setAttribute('x2', b.x); hit.setAttribute('y2', b.y);
-  hit.setAttribute('stroke', 'transparent'); hit.setAttribute('stroke-width', '18');
+  // 透明ヒットエリア（同じ曲線形状）
+  const hit = document.createElementNS(ns, 'path');
+  hit.setAttribute('d', d);
+  hit.setAttribute('fill', 'none');
+  hit.setAttribute('stroke', 'transparent');
+  hit.setAttribute('stroke-width', '18');
   eg.appendChild(hit);
 
   eg.addEventListener('mouseenter', () => {
-    line.setAttribute('stroke', style.activeColor); line.setAttribute('stroke-width', '2.5');
+    path.setAttribute('stroke', style.activeColor);
+    path.setAttribute('stroke-width', '2.5');
     if (tri) tri.setAttribute('fill', style.activeColor);
   });
   eg.addEventListener('mouseleave', () => {
-    line.setAttribute('stroke', style.color); line.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke', style.color);
+    path.setAttribute('stroke-width', '1.5');
     if (tri) tri.setAttribute('fill', style.color);
   });
   eg.addEventListener('click', ev => {
@@ -192,10 +265,11 @@ function drawEdge(svg, ns, a, b, linkData, style, onNodeClick) {
   svg.appendChild(eg);
 }
 
+// ── エッジポップアップ ────────────────────
 function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
   document.getElementById('edgePopup')?.remove();
   const popup = document.createElement('div');
-  popup.id = 'edgePopup';
+  popup.id        = 'edgePopup';
   popup.className = 'link-popup';
   popup.innerHTML = `
     <button class="link-popup-close" onclick="document.getElementById('edgePopup').remove()">✕</button>
@@ -211,7 +285,7 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
       <div class="link-popup-note">${link.note || ''}</div>
     </div>`;
 
-  // 先にDOMに追加して実サイズを取得
+  // 先にDOMへ追加して実サイズを取得（画面外防止）
   popup.style.visibility = 'hidden';
   document.body.appendChild(popup);
 
@@ -227,8 +301,8 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
   if (y + ph > window.innerHeight - margin) y = ev.clientY - ph - margin;
   if (y < margin) y = margin;
 
-  popup.style.left = x + 'px';
-  popup.style.top  = y + 'px';
+  popup.style.left       = x + 'px';
+  popup.style.top        = y + 'px';
   popup.style.visibility = '';
 
   popup.querySelectorAll('.link-popup-book').forEach(el => {
@@ -239,6 +313,7 @@ function showEdgePopup(ev, link, nodeA, nodeB, onNodeClick) {
   });
 }
 
+// ── ユーティリティ ────────────────────────
 function bookColor(b) {
   const genre = (b.genre_tags || '').split(';')[0];
   return GENRE_MAP[genre]?.color || 'hsl(210,50%,60%)';

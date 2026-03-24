@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 
 import { state, getBook, getStoriesForBook, getMemosForBook, getMemosForStory, getLinksFrom, getLinksFromStory, titleById } from '../store.js';
-import { addMemo, editMemo, deleteMemo, fetchMemos, fetchLinks } from '../data.js';
+import { addMemo, editMemo, deleteMemo, fetchMemos, fetchLinks, deleteLink } from '../data.js';
 import { openModal } from '../ui/modal.js';
 import { showToast } from '../ui/toast.js';
 import { GENRE_MAP } from '../config.js';
@@ -50,7 +50,7 @@ export function switchTab(tab) {
   const b = getBook(state.currentBookId);
   if (!b) return;
 
-  // ── タブ切り替え時に必ずリセット ──
+  // タブ切り替え時に必ずリセット
   body.innerHTML = '';
   compose.style.display = 'none';
 
@@ -78,6 +78,7 @@ function renderInfo(b, container) {
           <span class="story-num">${String(s.order).padStart(2, '0')}</span>
           <span class="story-title">${s.title_jp}</span>
           <span class="story-orig">${s.title_orig}</span>
+          ${s.year_orig ? `<span style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--text-dim);margin-left:auto;padding-right:0.4rem">${s.year_orig}</span>` : ''}
           <span class="story-expand-icon">▶</span>
         </div>
         <div class="story-sub-panel" id="storySub_${i}">
@@ -92,11 +93,9 @@ function renderInfo(b, container) {
   }
   container.innerHTML = html;
 
-  // 話の展開
   container.querySelectorAll('.story-item').forEach(row => {
     row.addEventListener('click', () => toggleStory(parseInt(row.dataset.idx)));
   });
-  // 話サブタブ
   container.querySelectorAll('.story-sub-tab').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -121,17 +120,32 @@ function toggleStory(idx) {
 }
 
 function switchStorySub(idx, tab, activeBtn) {
+  const stories = getStoriesForBook(state.currentBookId);
+  const s = stories[idx];
+  if (!s) return;
+
   const sub = document.getElementById(`storySub_${idx}`);
   if (!sub) return;
   sub.querySelectorAll('.story-sub-tab').forEach(t => t.classList.remove('active'));
   if (activeBtn) activeBtn.classList.add('active');
 
   const storyId = document.querySelector(`.story-item[data-idx="${idx}"]`)?.dataset.storyId;
-  const body = document.getElementById(`storySubBody_${idx}`);
+  const body    = document.getElementById(`storySubBody_${idx}`);
+  body.innerHTML = ''; // サブパネルをリセット
 
   if (tab === 'memo') {
+    // 話のタグを先頭に表示
+    const storyTags = (s.genre_tags || '').split(';').filter(Boolean);
+    if (storyTags.length > 0) {
+      const tagHtml = `<div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.7rem">
+        ${storyTags.map(g => {
+          const cls = GENRE_MAP[g]?.cls || '';
+          return `<span class="genre-tag ${cls}" style="font-size:0.62rem">${g}</span>`;
+        }).join('')}
+      </div>`;
+      body.insertAdjacentHTML('afterbegin', tagHtml);
+    }
     renderMemoThread(state.currentBookId, storyId, body);
-    // 話用コンポーズ
     body.insertAdjacentHTML('beforeend', `
       <div class="story-compose" style="margin-top:0.6rem">
         <input class="story-compose-tag" id="storyTag_${idx}" placeholder="タグ（スペース区切り）">
@@ -143,6 +157,7 @@ function switchStorySub(idx, tab, activeBtn) {
       await postStoryMemo(idx, el.dataset.storyId);
     });
   } else {
+    // 話のリンク（storyIdを必ず渡して本のリンクと分離）
     renderLinksSection(state.currentBookId, storyId, body);
   }
 }
@@ -172,9 +187,11 @@ function renderMemoThread(bookId, storyId, container) {
   memos.forEach(m => {
     html += `<div class="memo-item" data-memo-id="${m.id}">
       <div class="memo-header">
-        <div class="memo-tags-row">${(m.tags||'').split(';').filter(Boolean).map(t => `<span class="memo-tag">${t}</span>`).join('')}</div>
+        <div class="memo-tags-row">
+          ${(m.tags || '').split(';').filter(Boolean).map(t => `<span class="memo-tag">${t}</span>`).join('')}
+        </div>
         <div style="display:flex;align-items:center;gap:0.5rem">
-          <span class="memo-date">${String(m.created_at).slice(0,10)}</span>
+          <span class="memo-date">${String(m.created_at).slice(0, 10)}</span>
           <div class="memo-actions">
             <button class="memo-action-btn edit-btn">編集</button>
             <button class="memo-action-btn del del-btn">削除</button>
@@ -186,12 +203,10 @@ function renderMemoThread(bookId, storyId, container) {
   });
   html += '</div>';
 
-  // コンテナの既存メモ部分だけ置き換え
   const existing = container.querySelector('.memo-thread');
   if (existing) existing.outerHTML = html;
   else container.insertAdjacentHTML('afterbegin', html);
 
-  // ボタンイベント
   container.querySelectorAll('.memo-item').forEach(item => {
     const id = item.dataset.memoId;
     item.querySelector('.edit-btn').addEventListener('click', () => startEditMemo(item, id));
@@ -252,9 +267,9 @@ function renderLinksSection(bookId, storyId, container) {
     ? getLinksFromStory(storyId)
     : getLinksFrom(bookId);
 
-  const scope = storyId ? `story` : 'book';
+  const scope = storyId ? 'story' : 'book';
   let html = `<div class="links-section">
-    <button class="add-link-btn" data-scope="${scope}" data-story-id="${storyId||''}">＋ リンクを追加</button>`;
+    <button class="add-link-btn" data-scope="${scope}" data-story-id="${storyId || ''}">＋ リンクを追加</button>`;
 
   links.forEach(l => {
     const isSameWorld = l.relation === '同一世界観';
@@ -272,7 +287,6 @@ function renderLinksSection(bookId, storyId, container) {
   html += `</div>`;
   container.innerHTML = html;
 
-  // リンク追加ボタン
   container.querySelector('.add-link-btn').addEventListener('click', () => {
     openModal(scope, async () => {
       state.links = await fetchLinks(true);
@@ -280,13 +294,12 @@ function renderLinksSection(bookId, storyId, container) {
     });
   });
 
-  // リンク削除
   container.querySelectorAll('.link-del-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('このリンクを削除しますか？')) return;
       const id = btn.closest('.link-item').dataset.linkId;
       try {
-        await import('../data.js').then(m => m.deleteLink(id));
+        await deleteLink(id);
         state.links = await fetchLinks(true);
         renderLinksSection(bookId, storyId, container);
         showToast('削除しました');
@@ -299,15 +312,16 @@ function renderLinksSection(bookId, storyId, container) {
 
 // ── メモ投稿（本全体） ───────────────────
 export function initCompose() {
-  const input  = document.getElementById('composeTagInput');
+  const input   = document.getElementById('composeTagInput');
   const preview = document.getElementById('composeTagPreview');
+
   input.addEventListener('input', () => {
     const tags = input.value.trim().split(/\s+/).filter(Boolean);
     preview.innerHTML = tags.map(t => `<span class="compose-tag-pill">${t}</span>`).join('');
   });
 
   document.getElementById('composeSend').addEventListener('click', async () => {
-    const text   = document.getElementById('composeText').value.trim();
+    const text = document.getElementById('composeText').value.trim();
     if (!text || !state.currentBookId) return;
     const tagVal = input.value.trim();
     const tags   = tagVal ? tagVal.split(/\s+/).filter(Boolean) : [];
@@ -315,7 +329,7 @@ export function initCompose() {
       await addMemo(state.currentBookId, '', text, tags);
       state.memos = await fetchMemos(true);
       document.getElementById('composeText').value = '';
-      input.value = '';
+      input.value       = '';
       preview.innerHTML = '';
       switchTab('memo');
       showToast('メモを追加しました', 'success');
