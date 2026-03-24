@@ -1,0 +1,246 @@
+/* ════════════════════════════════
+   components.css — UIコンポーネント
+   ════════════════════════════════ */
+
+/* ── ジャンルタグ ── */
+.genre-tag {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.28rem 0.6rem; border-radius: 2px;
+  font-size: 0.68rem; cursor: pointer;
+  margin: 0.2rem 0.2rem 0 0; border: 1px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.genre-tag .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.gt-cyber  { background: var(--cyber-dim);                   color: var(--cyber);    border-color: rgba(45,232,176,0.2); }
+.gt-space  { background: var(--space-dim);                   color: var(--space);    border-color: rgba(155,110,232,0.2); }
+.gt-ai     { background: rgba(74,222,232,0.1);               color: var(--ai);       border-color: rgba(74,222,232,0.2); }
+.gt-dys    { background: rgba(232,92,74,0.1);                color: var(--dystopia); border-color: rgba(232,92,74,0.2); }
+.gt-new    { background: rgba(232,125,200,0.1);              color: var(--newwave);  border-color: rgba(232,125,200,0.2); }
+.gt-first  { background: rgba(200,169,110,0.1);              color: var(--gold);     border-color: rgba(200,169,110,0.2); }
+.genre-tag:hover  { filter: brightness(1.3); }
+.genre-tag.active { filter: brightness(1.3); border-width: 1.5px; }
+
+/* ── 作者リスト ── */
+.author-list { display: flex; flex-direction: column; gap: 0.1rem; }
+.author-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 0.6rem; border-radius: var(--radius);
+  cursor: pointer; transition: background 0.15s;
+}
+.author-item:hover  { background: var(--surface); }
+.author-item.active { background: rgba(74,144,217,0.1); }
+.author-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.author-name  { font-size: 0.78rem; color: var(--text-mid); }
+.author-count { margin-left: auto; font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-dim); }
+
+/* ── 作者クラスタ ── */
+.author-cluster { margin-bottom: 2.4rem; animation: fadeUp 0.4s ease both; }
+.cluster-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.cluster-line { flex: 1; height: 1px; background: linear-gradient(to right, var(--border), transparent); }
+.cluster-author {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 0.85rem; font-weight: 600; color: var(--text-mid);
+  white-space: nowrap; display: flex; align-items: center; gap: 0.6rem;
+}
+.cluster-author-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── 本カード ── */
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.8rem;
+}
+.book-card {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 1rem 1rem 0.8rem;
+  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+}
+.book-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.book-card:hover { background: var(--surface); border-color: var(--border); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.book-card:hover::before { opacity: 1; }
+.bc-cyber::before  { background: var(--cyber); }
+.bc-space::before  { background: var(--space); }
+.bc-ai::before     { background: var(--ai); }
+.bc-dys::before    { background: var(--dystopia); }
+.bc-new::before    { background: var(--newwave); }
+.bc-first::before  { background: var(--gold); }
+.book-year   { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-dim); margin-bottom: 0.4rem; }
+.book-title  { font-family: 'Shippori Mincho', serif; font-size: 0.9rem; font-weight: 500; color: var(--text); line-height: 1.5; margin-bottom: 0.5rem; }
+.book-orig   { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--text-dim); margin-bottom: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book-tags   { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.6rem; }
+.book-tag    { font-size: 0.6rem; padding: 0.15rem 0.45rem; border-radius: 2px; }
+.book-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 0.6rem; border-top: 1px solid var(--border2); }
+.book-read-badge  { font-family: 'Space Mono', monospace; font-size: 0.55rem; letter-spacing: 0.08em; color: var(--cyber); opacity: 0.8; }
+.book-memo-count  { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--text-dim); }
+.anthology-mark   { font-size: 0.58rem; color: var(--gold); opacity: 0.8; }
+
+/* ── 概要 ── */
+.synopsis-text {
+  font-size: 0.8rem; line-height: 1.9; color: var(--text-mid);
+  padding: 0.8rem; background: var(--bg3);
+  border-left: 2px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 1rem;
+}
+
+/* ── 短編リスト ── */
+.stories-list { margin-bottom: 1rem; }
+.story-item {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--border2);
+  cursor: pointer; border-radius: var(--radius); transition: background 0.15s;
+}
+.story-item:hover { background: var(--bg3); }
+.story-num   { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-dim); min-width: 1.2rem; }
+.story-title { font-family: 'Shippori Mincho', serif; font-size: 0.82rem; color: var(--text-mid); flex: 1; }
+.story-orig  { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--text-dim); }
+.story-expand-icon { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-dim); transition: transform 0.2s; }
+.story-item.open .story-expand-icon { transform: rotate(90deg); }
+
+/* ── 話別サブパネル ── */
+.story-sub-panel { display: none; margin: 0 0 0.8rem 1.8rem; padding: 0.7rem 0.8rem; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); animation: fadeUp 0.2s ease both; }
+.story-sub-panel.open { display: block; }
+.story-sub-tabs { display: flex; margin-bottom: 0.7rem; border-bottom: 1px solid var(--border2); }
+.story-sub-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-dim); padding: 0.4rem 0.7rem;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s;
+}
+.story-sub-tab:hover { color: var(--text-mid); }
+.story-sub-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+.story-compose { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.6rem; }
+.story-compose-tag {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 0.28rem 0.6rem; font-family: 'Space Mono', monospace; font-size: 0.63rem; color: var(--text); outline: none; width: 100%;
+}
+.story-compose-tag::placeholder { color: var(--text-dim); }
+.story-compose-input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.5rem 0.7rem; font-family: 'Noto Sans JP', sans-serif; font-size: 0.75rem; font-weight: 300;
+  color: var(--text); resize: none; outline: none; min-height: 52px; line-height: 1.7;
+}
+.story-compose-input:focus { border-color: var(--accent); }
+.story-compose-send {
+  align-self: flex-end; background: var(--accent); border: none;
+  border-radius: var(--radius); padding: 0.35rem 0.9rem;
+  font-family: 'Space Mono', monospace; font-size: 0.6rem; color: #fff; cursor: pointer;
+}
+.story-compose-send:hover { background: var(--accent2); }
+
+/* ── メモスレッド ── */
+.memo-thread { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+.memo-item {
+  padding: 0.8rem; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); animation: fadeUp 0.3s ease both;
+}
+.memo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.memo-tags-row { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.memo-tag { font-size: 0.58rem; padding: 0.1rem 0.35rem; background: var(--gold-dim); border-radius: 2px; color: var(--gold); }
+.memo-date { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: var(--text-dim); }
+.memo-text { font-size: 0.78rem; line-height: 1.8; color: var(--text-mid); }
+.memo-actions { display: flex; gap: 0.3rem; opacity: 0; transition: opacity 0.15s; }
+.memo-item:hover .memo-actions { opacity: 1; }
+.memo-action-btn {
+  background: none; border: 1px solid var(--border2); border-radius: 2px; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 0.55rem; color: var(--text-dim); padding: 0.15rem 0.4rem; transition: all 0.12s;
+}
+.memo-action-btn:hover     { border-color: var(--border); color: var(--text); }
+.memo-action-btn.del:hover { border-color: var(--dystopia); color: var(--dystopia); }
+.memo-edit-area { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.memo-edit-textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--accent); border-radius: var(--radius);
+  padding: 0.5rem 0.7rem; font-family: 'Noto Sans JP', sans-serif; font-size: 0.78rem; font-weight: 300;
+  color: var(--text); resize: none; outline: none; line-height: 1.7; min-height: 60px;
+}
+.memo-edit-tag-input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.3rem 0.6rem; font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); outline: none;
+}
+.memo-edit-btns { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.memo-edit-save   { background: var(--accent); border: none; border-radius: var(--radius); padding: 0.3rem 0.8rem; font-family: 'Space Mono', monospace; font-size: 0.6rem; color: #fff; cursor: pointer; }
+.memo-edit-cancel { background: none; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.3rem 0.8rem; font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-dim); cursor: pointer; }
+
+/* ── リンク ── */
+.links-section { margin-bottom: 1rem; }
+.add-link-btn {
+  width: 100%; padding: 0.6rem; background: none;
+  border: 1px dashed var(--border); border-radius: var(--radius);
+  font-family: 'Space Mono', monospace; font-size: 0.63rem; color: var(--text-dim);
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em;
+  transition: all 0.15s; margin-bottom: 0.8rem;
+}
+.add-link-btn:hover { border-color: var(--accent); color: var(--accent2); background: rgba(74,144,217,0.05); }
+.link-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.55rem 0.7rem; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); margin-bottom: 0.4rem;
+}
+.link-rel {
+  font-size: 0.62rem; padding: 0.1rem 0.4rem;
+  background: rgba(74,144,217,0.1); border: 1px solid rgba(74,144,217,0.2);
+  border-radius: 2px; color: var(--accent2); white-space: nowrap;
+}
+.link-target { font-family: 'Shippori Mincho', serif; font-size: 0.78rem; color: var(--text-mid); flex: 1; }
+.link-dir    { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: var(--text-dim); }
+.link-del-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.6rem; color: var(--text-dim); padding: 0.1rem 0.3rem;
+  opacity: 0; transition: all 0.12s; font-family: 'Space Mono', monospace;
+}
+.link-item:hover .link-del-btn { opacity: 1; }
+.link-del-btn:hover { color: var(--dystopia); }
+
+/* ── グラフポップアップ ── */
+.link-popup {
+  position: fixed; z-index: 300; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  min-width: 260px; max-width: 320px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+  animation: fadeUp 0.18s ease both; overflow: hidden;
+}
+.link-popup-header { padding: 0.7rem 1rem 0.6rem; border-bottom: 1px solid var(--border2); display: flex; align-items: center; gap: 0.5rem; }
+.link-popup-rel { font-size: 0.62rem; padding: 0.15rem 0.45rem; background: rgba(74,144,217,0.12); border: 1px solid rgba(74,144,217,0.25); border-radius: 2px; color: var(--accent2); font-family: 'Space Mono', monospace; white-space: nowrap; }
+.link-popup-body { padding: 0.7rem 1rem; }
+.link-popup-books { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+.link-popup-book { font-family: 'Shippori Mincho', serif; font-size: 0.82rem; color: var(--text); cursor: pointer; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; transition: color 0.15s; }
+.link-popup-book:hover { color: var(--accent2); }
+.link-popup-sep { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--accent); flex-shrink: 0; }
+.link-popup-note { font-size: 0.75rem; line-height: 1.8; color: var(--text-mid); padding: 0.5rem 0.6rem; background: var(--bg3); border-left: 2px solid var(--border); border-radius: 0 2px 2px 0; }
+.link-popup-note:empty { display: none; }
+.link-popup-close { position: absolute; top: 0.5rem; right: 0.6rem; background: none; border: none; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text-dim); padding: 0.2rem 0.4rem; border-radius: 2px; }
+.link-popup-close:hover { color: var(--text); }
+
+/* ── リンクモーダル ── */
+.link-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 400; backdrop-filter: blur(3px); align-items: center; justify-content: center; }
+.link-modal-backdrop.open { display: flex; }
+.link-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; width: 360px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.7); animation: fadeUp 0.2s ease both; }
+.lm-header { padding: 1rem 1.2rem 0.8rem; border-bottom: 1px solid var(--border2); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg2); }
+.lm-title { font-family: 'Space Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-mid); text-transform: uppercase; }
+.lm-close { background: none; border: none; cursor: pointer; font-size: 0.65rem; color: var(--text-dim); font-family: 'Space Mono', monospace; padding: 0.2rem 0.4rem; }
+.lm-close:hover { color: var(--text); }
+.lm-body { padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.9rem; }
+.lm-field-label { font-family: 'Space Mono', monospace; font-size: 0.58rem; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.35rem; }
+.lm-search { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.8rem; font-family: 'Noto Sans JP', sans-serif; font-size: 0.78rem; color: var(--text); outline: none; transition: border-color 0.15s; }
+.lm-search:focus { border-color: var(--accent); }
+.lm-search::placeholder { color: var(--text-dim); }
+.lm-results { display: flex; flex-direction: column; gap: 0.3rem; max-height: 120px; overflow-y: auto; }
+.lm-result-item { padding: 0.45rem 0.7rem; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius); cursor: pointer; font-size: 0.8rem; color: var(--text-mid); transition: all 0.12s; }
+.lm-result-item:hover, .lm-result-item.selected { background: rgba(74,144,217,0.1); border-color: rgba(74,144,217,0.3); color: var(--text); }
+.lm-rel-btns { display: flex; flex-direction: column; gap: 0.4rem; }
+.lm-rel-btn { display: flex; align-items: center; gap: 0.8rem; padding: 0.55rem 0.8rem; background: var(--bg3); border: 1.5px solid var(--border2); border-radius: var(--radius); cursor: pointer; transition: all 0.15s; text-align: left; }
+.lm-rel-btn:hover   { border-color: var(--border); background: var(--surface); }
+.lm-rel-btn.selected { border-color: var(--accent); background: rgba(74,144,217,0.08); }
+.lm-rel-icon { width: 36px; height: 16px; flex-shrink: 0; display: flex; align-items: center; }
+.lm-rel-icon svg { width: 100%; height: 100%; }
+.lm-rel-info { flex: 1; }
+.lm-rel-name { font-family: 'Space Mono', monospace; font-size: 0.63rem; color: var(--text); letter-spacing: 0.05em; }
+.lm-rel-desc { font-size: 0.62rem; color: var(--text-dim); margin-top: 0.15rem; }
+.lm-footer { padding: 0.8rem 1.2rem; border-top: 1px solid var(--border2); display: flex; justify-content: flex-end; gap: 0.5rem; position: sticky; bottom: 0; background: var(--bg2); }
+.lm-cancel { background: none; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.4rem 0.9rem; font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--text-dim); cursor: pointer; transition: all 0.15s; }
+.lm-cancel:hover { border-color: var(--text-dim); color: var(--text); }
+.lm-submit { background: var(--accent); border: none; border-radius: var(--radius); padding: 0.4rem 1rem; font-family: 'Space Mono', monospace; font-size: 0.62rem; color: #fff; cursor: pointer; transition: background 0.15s; }
+.lm-submit:hover    { background: var(--accent2); }
+.lm-submit:disabled { opacity: 0.35; pointer-events: none; }

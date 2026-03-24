@@ -1,0 +1,257 @@
+/* ════════════════════════════════
+   layout.css — 構造レイアウト
+   ════════════════════════════════ */
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,12,16,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem; letter-spacing: 0.22em;
+  color: var(--accent2); text-transform: uppercase;
+  display: flex; align-items: center; gap: 0.8rem;
+}
+.logo-mark {
+  width: 22px; height: 22px;
+  border: 1.5px solid var(--accent);
+  transform: rotate(45deg);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-mark::after {
+  content: ''; width: 6px; height: 6px;
+  background: var(--accent); transform: rotate(-45deg);
+}
+nav { display: flex; gap: 0.2rem; }
+.nav-btn {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.12em;
+  color: var(--text-dim); padding: 0.4rem 0.9rem;
+  border-radius: var(--radius); transition: all 0.2s;
+  text-transform: uppercase;
+}
+.nav-btn:hover  { color: var(--text); background: var(--surface); }
+.nav-btn.active { color: var(--accent2); background: rgba(74,144,217,0.1); }
+
+/* ── APP SHELL ── */
+.app { display: flex; height: calc(100vh - 56px); }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 260px; flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 1.2rem 0;
+}
+.sidebar-section {
+  padding: 0 1.2rem 1rem;
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 0.6rem;
+}
+.sidebar-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.2em;
+  color: var(--text-dim); text-transform: uppercase;
+  margin-bottom: 0.7rem;
+}
+
+/* ── MAIN ── */
+.main { flex: 1; overflow-y: auto; position: relative; }
+
+/* ── LIST VIEW ── */
+.list-view { padding: 1.6rem 2rem; }
+.view-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 1.4rem; padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border2);
+}
+.view-title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 1.1rem; font-weight: 500; color: var(--text);
+}
+.view-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; color: var(--text-dim);
+}
+
+/* ── GRAPH VIEW ── */
+.graph-view {
+  width: 100%; height: 100%;
+  position: relative; background: var(--bg);
+}
+.graph-canvas { width: 100%; height: 100%; }
+.zone-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 0.15em;
+  text-transform: uppercase; opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ── OVERLAY ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 150;
+  backdrop-filter: blur(2px);
+}
+.overlay.active { display: block; }
+
+/* ── DETAIL PANEL ── */
+.detail-panel {
+  position: fixed; top: 56px; right: 0; bottom: 0;
+  width: 420px;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  z-index: 200;
+}
+.detail-panel.open { transform: translateX(0); }
+
+.panel-header {
+  padding: 1.4rem 1.4rem 1rem;
+  border-bottom: 1px solid var(--border2);
+  position: relative;
+}
+.panel-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: none; border: 1px solid var(--border);
+  cursor: pointer; font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; color: var(--text-dim);
+  padding: 0.3rem 0.5rem; border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.panel-close:hover { color: var(--text); border-color: var(--text-dim); }
+.panel-year {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem; color: var(--text-dim); margin-bottom: 0.3rem;
+}
+.panel-title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 1.3rem; font-weight: 600;
+  color: var(--text); line-height: 1.4; margin-bottom: 0.3rem;
+}
+.panel-orig {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; color: var(--text-dim); margin-bottom: 0.8rem;
+}
+.panel-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.meta-chip {
+  font-size: 0.65rem; color: var(--text-mid);
+  padding: 0.2rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border2); border-radius: 2px;
+}
+
+.panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border2);
+  padding: 0 1.4rem; flex-shrink: 0;
+}
+.panel-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.63rem; letter-spacing: 0.1em;
+  color: var(--text-dim); text-transform: uppercase;
+  padding: 0.7rem 0.8rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s; margin-bottom: -1px;
+}
+.panel-tab:hover  { color: var(--text-mid); }
+.panel-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+.panel-body { flex: 1; overflow-y: auto; padding: 1rem 1.4rem; }
+
+/* ── COMPOSE ── */
+.compose-area {
+  border-top: 1px solid var(--border2);
+  padding: 0.75rem 1.4rem 0.85rem;
+  background: var(--bg2);
+  display: flex; flex-direction: column; gap: 0.5rem;
+  flex-shrink: 0;
+}
+.compose-tag-row { display: flex; align-items: center; gap: 0.5rem; }
+.compose-tag-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.12em;
+  color: var(--text-dim); white-space: nowrap; flex-shrink: 0;
+}
+.compose-tag-field {
+  flex: 1; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 0.32rem 0.65rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem; color: var(--text); outline: none;
+  transition: border-color 0.15s;
+}
+.compose-tag-field:focus { border-color: rgba(200,169,110,0.5); }
+.compose-tag-field::placeholder { color: var(--text-dim); }
+.compose-tag-preview { display: flex; flex-wrap: wrap; gap: 0.3rem; min-height: 1.2rem; }
+.compose-tag-pill {
+  font-size: 0.6rem; padding: 0.14rem 0.42rem;
+  background: var(--gold-dim);
+  border: 1px solid rgba(200,169,110,0.3);
+  border-radius: 2px; color: var(--gold);
+}
+.compose-input-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+.compose-textarea {
+  flex: 1; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.78rem; font-weight: 300;
+  color: var(--text); resize: none; outline: none;
+  min-height: 58px; transition: border-color 0.15s; line-height: 1.7;
+}
+.compose-textarea:focus { border-color: var(--accent); }
+.compose-textarea::placeholder { color: var(--text-dim); }
+.compose-send {
+  background: var(--accent); border: none; border-radius: var(--radius);
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+}
+.compose-send:hover { background: var(--accent2); }
+.compose-send svg { width: 14px; height: 14px; fill: #fff; }
+
+/* ── GAS BAR ── */
+.gas-bar {
+  border-top: 1px solid var(--border2);
+  padding: 0.55rem 1.4rem;
+  background: var(--bg2);
+  display: flex; align-items: center; gap: 0.6rem;
+  flex-shrink: 0;
+}
+.gas-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem; letter-spacing: 0.12em;
+  color: var(--text-dim); text-transform: uppercase; white-space: nowrap;
+}
+.gas-input {
+  flex: 1; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 0.28rem 0.6rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem; color: var(--text); outline: none;
+  transition: border-color 0.15s;
+}
+.gas-input:focus { border-color: var(--accent); }
+.gas-input::placeholder { color: var(--text-dim); }
+.gas-save-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0.28rem 0.7rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem; color: var(--text-dim); cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.gas-save-btn:hover { border-color: var(--accent); color: var(--accent2); }
+.gas-status {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem; white-space: nowrap; transition: color 0.3s;
+}

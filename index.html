@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SF LIBRARY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600&family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/layout.css">
+<link rel="stylesheet" href="styles/components.css">
+</head>
+<body>
+
+<!-- ════ HEADER ════ -->
+<header id="appHeader">
+  <div class="logo">
+    <div class="logo-mark"></div>
+    SF LIBRARY
+  </div>
+  <nav>
+    <button class="nav-btn active" data-view="list">一覧</button>
+    <button class="nav-btn" data-view="graph">グラフ</button>
+  </nav>
+</header>
+
+<div class="app">
+  <!-- ════ SIDEBAR ════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">ジャンル</div>
+      <div id="genreFilters"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">作者</div>
+      <div class="author-list" id="authorList"></div>
+    </div>
+  </aside>
+
+  <!-- ════ MAIN ════ -->
+  <main class="main" id="mainArea">
+    <!-- ローディング -->
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">データを読み込んでいます</div>
+    </div>
+
+    <!-- 一覧ビュー -->
+    <div class="list-view" id="listView" style="display:none">
+      <div class="view-header">
+        <span class="view-title" id="viewTitle">すべての作品</span>
+        <span class="view-count" id="viewCount"></span>
+      </div>
+      <div id="clusterContainer"></div>
+    </div>
+
+    <!-- グラフビュー -->
+    <div class="graph-view" id="graphView" style="display:none">
+      <svg class="graph-canvas" id="graphSvg"></svg>
+    </div>
+  </main>
+</div>
+
+<!-- ════ OVERLAY ════ -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ════ LINK MODAL ════ -->
+<div class="link-modal-backdrop" id="linkModal">
+  <div class="link-modal">
+    <div class="lm-header">
+      <span class="lm-title">リンクを追加</span>
+      <button class="lm-close" id="linkModalClose">✕</button>
+    </div>
+    <div class="lm-body">
+      <div>
+        <div class="lm-field-label">接続先の作品</div>
+        <input class="lm-search" id="lmSearch" placeholder="タイトルまたは作者名で検索…">
+        <div class="lm-results" id="lmResults" style="margin-top:0.5rem"></div>
+      </div>
+      <div>
+        <div class="lm-field-label">関係タイプ</div>
+        <div class="lm-rel-btns" id="lmRelBtns">
+          <button class="lm-rel-btn" data-rel="同一世界観">
+            <div class="lm-rel-icon"><svg viewBox="0 0 36 10"><line x1="0" y1="5" x2="36" y2="5" stroke="rgba(74,144,217,0.8)" stroke-width="2"/></svg></div>
+            <div class="lm-rel-info"><div class="lm-rel-name">同一世界観</div><div class="lm-rel-desc">共通の設定・世界を持つ作品。矢印なし直線</div></div>
+          </button>
+          <button class="lm-rel-btn" data-rel="影響元">
+            <div class="lm-rel-icon"><svg viewBox="0 0 36 10"><line x1="0" y1="5" x2="26" y2="5" stroke="rgba(100,140,200,0.8)" stroke-width="2" stroke-dasharray="4,3"/><polygon points="36,5 24,1.5 24,8.5" fill="rgba(100,140,200,0.8)"/></svg></div>
+            <div class="lm-rel-info"><div class="lm-rel-name">影響元</div><div class="lm-rel-desc">影響を受けた元作品。点線矢印</div></div>
+          </button>
+          <button class="lm-rel-btn" data-rel="オマージュ">
+            <div class="lm-rel-icon"><svg viewBox="0 0 36 10"><line x1="0" y1="5" x2="26" y2="5" stroke="rgba(200,169,110,0.8)" stroke-width="2"/><polygon points="36,5 24,1.5 24,8.5" fill="rgba(200,169,110,0.8)"/></svg></div>
+            <div class="lm-rel-info"><div class="lm-rel-name">オマージュ</div><div class="lm-rel-desc">意図的な引用・敬意ある参照。実線矢印</div></div>
+          </button>
+          <button class="lm-rel-btn" data-rel="引用・参照">
+            <div class="lm-rel-icon"><svg viewBox="0 0 36 10"><line x1="0" y1="5" x2="26" y2="5" stroke="rgba(232,125,200,0.8)" stroke-width="2" stroke-dasharray="2,2"/><polygon points="36,5 24,1.5 24,8.5" fill="rgba(232,125,200,0.8)"/></svg></div>
+            <div class="lm-rel-info"><div class="lm-rel-name">引用・参照</div><div class="lm-rel-desc">作中での具体的な言及</div></div>
+          </button>
+        </div>
+      </div>
+      <div>
+        <div class="lm-field-label">メモ（任意）</div>
+        <input class="lm-search" id="lmNote" placeholder="関係性についてのメモ…">
+      </div>
+    </div>
+    <div class="lm-footer">
+      <button class="lm-cancel" id="linkModalCancel">キャンセル</button>
+      <button class="lm-submit" id="lmSubmit" disabled>追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ DETAIL PANEL ════ -->
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <button class="panel-close" id="panelClose">✕ 閉じる</button>
+    <div class="panel-year" id="panelYear"></div>
+    <div class="panel-title" id="panelTitle"></div>
+    <div class="panel-orig" id="panelOrig"></div>
+    <div class="panel-meta" id="panelMeta"></div>
+    <div class="panel-tags" id="panelTags"></div>
+  </div>
+  <div class="panel-tabs" id="panelTabs">
+    <button class="panel-tab active" data-tab="info">概要</button>
+    <button class="panel-tab" data-tab="memo">メモ</button>
+    <button class="panel-tab" data-tab="links">リンク</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="compose-area" id="composeArea" style="display:none">
+    <div class="compose-tag-row">
+      <span class="compose-tag-label">TAGS</span>
+      <input class="compose-tag-field" id="composeTagInput" placeholder="スペース区切り　例: 考察 文体">
+    </div>
+    <div class="compose-tag-preview" id="composeTagPreview"></div>
+    <div class="compose-input-row">
+      <textarea class="compose-textarea" id="composeText" placeholder="メモや感想を記録する…" rows="2"></textarea>
+      <button class="compose-send" id="composeSend">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="gas-bar" id="gasBar">
+    <span class="gas-label">GAS URL</span>
+    <input class="gas-input" id="gasUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
+    <button class="gas-save-btn" id="gasSaveBtn">保存</button>
+    <span class="gas-status" id="gasStatus"></span>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
