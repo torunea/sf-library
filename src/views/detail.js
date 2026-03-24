@@ -252,17 +252,8 @@ function renderLinksSection(bookId, storyId, container) {
     ? getLinksFromStory(storyId)
     : getLinksFrom(bookId);
 
-  const legend = `<div style="display:flex;gap:1rem;margin-bottom:0.9rem;padding:0.6rem 0.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;">
-    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.62rem;color:var(--text-dim)">
-      <svg width="32" height="10"><line x1="0" y1="5" x2="32" y2="5" stroke="rgba(74,144,217,0.6)" stroke-width="1.5"/></svg>同一世界観
-    </div>
-    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.62rem;color:var(--text-dim)">
-      <svg width="32" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="rgba(100,140,200,0.6)" stroke-width="1.5" stroke-dasharray="4,3"/><polygon points="32,5 22,2 22,8" fill="rgba(100,140,200,0.6)"/></svg>影響元
-    </div>
-  </div>`;
-
   const scope = storyId ? `story` : 'book';
-  let html = `<div class="links-section">${legend}
+  let html = `<div class="links-section">
     <button class="add-link-btn" data-scope="${scope}" data-story-id="${storyId||''}">＋ リンクを追加</button>`;
 
   links.forEach(l => {

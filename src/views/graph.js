@@ -48,18 +48,20 @@ export function drawGraph(onNodeClick) {
   });
   svg.appendChild(defs);
 
-  zones.forEach((z, i) => {
+    zones.forEach((z, i) => {
     const c = document.createElementNS(ns, 'circle');
     c.setAttribute('cx', z.x); c.setAttribute('cy', z.y); c.setAttribute('r', z.r);
     c.setAttribute('fill', `url(#zg${i})`);
     svg.appendChild(c);
     const t = document.createElementNS(ns, 'text');
-    t.setAttribute('x', z.x - z.r * 0.5); t.setAttribute('y', z.y - z.r * 0.72);
-    t.setAttribute('fill', z.color); t.setAttribute('class', 'zone-label');
+    t.setAttribute('x', z.x);
+    t.setAttribute('y', z.y - z.r * 0.55);  // 上端より内側に下げる
+    t.setAttribute('text-anchor', 'middle'); // 中央揃えに変更
+    t.setAttribute('fill', z.color);
+    t.setAttribute('class', 'zone-label');
     t.textContent = z.label;
     svg.appendChild(t);
-  });
-
+    });
   // ── ノード配置（スプレッドシートデータから） ──
   const nodes = state.books.map((b, i) => {
     const angle = (i / state.books.length) * Math.PI * 2;
