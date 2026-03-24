@@ -44,19 +44,22 @@ export function switchTab(tab) {
   document.querySelectorAll('.panel-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.tab === tab);
   });
+
   const body    = document.getElementById('panelBody');
   const compose = document.getElementById('composeArea');
   const b = getBook(state.currentBookId);
   if (!b) return;
 
+  // ── タブ切り替え時に必ずリセット ──
+  body.innerHTML = '';
+  compose.style.display = 'none';
+
   if (tab === 'info') {
-    compose.style.display = 'none';
     renderInfo(b, body);
   } else if (tab === 'memo') {
     compose.style.display = '';
     renderMemoThread(state.currentBookId, null, body);
   } else if (tab === 'links') {
-    compose.style.display = 'none';
     renderLinksSection(state.currentBookId, null, body);
   }
 }
